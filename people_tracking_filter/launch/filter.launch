@@ -1,6 +1,6 @@
 <launch>\n\n
     <node pkg="people_tracking_filter" type="people_tracker" name="people_tracker" output="screen">
-        <param name="fixed_frame" type="string" value="odom_combined"/>
+        <param name="fixed_frame" type="string" value="base_link"/>
         <param name="freq" value="10.0"/>
         <param name="start_distance_min" value="0.5"/>
         <param name="reliability_threshold" value="0.75"/>

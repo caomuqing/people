@@ -66,7 +66,7 @@ static double max_second_leg_age_s     = 2.0;
 static double max_track_jump_m         = 1.0;
 static double max_meas_jump_m          = 0.75;  // 1.0
 static double leg_pair_separation_m    = 1.0;
-static std::string fixed_frame         = "odom_combined";
+static std::string fixed_frame         = "base_link";
 
 static double kal_p = 4, kal_q = .002, kal_r = 10;
 static bool use_filter = true;
