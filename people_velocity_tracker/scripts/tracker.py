@@ -10,6 +10,8 @@ from kalman_filter import Kalman
 
 from people_msgs.msg import People, Person, PositionMeasurementArray
 
+from gazebo_msgs.msg import ModelStates
+
 import rospy
 
 
@@ -103,12 +105,23 @@ class VelocityTracker(object):
         self.sub = rospy.Subscriber('/people_tracker_measurements',
                                     PositionMeasurementArray,
                                     self.pm_cb)
+        self.sub = rospy.Subscriber('/gazebo/model_states',
+                                    ModelStates,
+                                    self.gazebo_cb)
         self.mpub = rospy.Publisher('/visualization_marker',
                                     Marker,
                                     queue_size=10)
         self.ppub = rospy.Publisher('/people',
                                     People,
                                     queue_size=10)
+        self.people_time = rospy.Time.now();
+        self.people_num = 3
+        self.people1_pos = [Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)]
+        # self.people1_pos[0] = Vector3(0.0, 0.0, 0.0)
+        # self.people1_pos[1] = Vector3(0.0, 0.0, 0.0)
+        # self.people1_pos[2] = Vector3(0.0, 0.0, 0.0)
+
+        self.vel = [Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)]
 
     def pm_cb(self, msg):
         for pm in msg.people:
@@ -117,6 +130,24 @@ class VelocityTracker(object):
             else:
                 p = PersonEstimate(pm)
                 self.people[pm.object_id] = p
+
+    def gazebo_cb(self, msg):
+        time = (rospy.Time.now() - self.people_time).to_sec()
+        num_of_peo = 0
+        if time>0.3:
+            for i in range(0,len(msg.name)):
+                if num_of_peo>self.people_num:
+                    break
+                if msg.name[i][:5] == "actor":
+                    self.vel[num_of_peo] = subtract(msg.pose[i].position, self.people1_pos[num_of_peo])
+                    scale(self.vel[num_of_peo], 1.0 / time)
+                    self.people1_pos[num_of_peo] = msg.pose[i].position
+                    self.people_time = rospy.Time.now()
+                    num_of_peo = num_of_peo+1
+        # people_new_pose = [msg.pose[6].position.x, msg.pose[6].position.y, msg.pose[6].position.z]
+        # print(msg.pose[6].position.x);
+
+
 
     def spin(self):
         rate = rospy.Rate(10)
@@ -132,13 +163,25 @@ class VelocityTracker(object):
     def publish(self):
         gen.counter = 0
         pl = People()
-        pl.header.frame_id = None
+        pl.header.frame_id = "map"
 
-        for p in self.people.values():
-            p.publish_markers(self.mpub)
-            frame, person = p.get_person()
-            pl.header.frame_id = frame
-            pl.people.append(person)
+        # for p in self.people.values():
+        #     p.publish_markers(self.mpub)
+        for i in range(0,3):
+            gen.scale = [.1, .3, 0]
+            gen.color = [1, 1, 1, 1]
+            vel = self.vel[i]
+            m = gen.marker(points=[self.people1_pos[i], add(self.people1_pos[i], vel)])
+            m.header.frame_id = "map"
+            self.mpub.publish(m)
+
+            # pl.header.frame_id = frame
+            p = Person()
+            p.name = str(i)
+            p.position = self.people1_pos[i]
+            p.velocity = self.vel[i]
+            p.reliability = 1.0      
+            pl.people.append(p)
 
         self.ppub.publish(pl)
 
