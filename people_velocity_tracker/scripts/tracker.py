@@ -19,7 +19,10 @@ def distance(leg1, leg2):
     return math.sqrt(math.pow(leg1.x - leg2.x, 2) +
                      math.pow(leg1.y - leg2.y, 2) +
                      math.pow(leg1.z - leg2.z, 2))
-
+def norm(leg1):
+    return math.sqrt(math.pow(leg1.x, 2) +
+                     math.pow(leg1.y, 2) +
+                     math.pow(leg1.z, 2))
 
 def average(leg1, leg2):
     return Point((leg1.x + leg2.x) / 2,
@@ -115,13 +118,13 @@ class VelocityTracker(object):
                                     People,
                                     queue_size=10)
         self.people_time = rospy.Time.now();
-        self.people_num = 3
-        self.people1_pos = [Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)]
+        self.people_num = 50
+        self.people1_pos = [Vector3(-10000, -10000.0, -10000.0) for i in range(self.people_num)]
         # self.people1_pos[0] = Vector3(0.0, 0.0, 0.0)
         # self.people1_pos[1] = Vector3(0.0, 0.0, 0.0)
         # self.people1_pos[2] = Vector3(0.0, 0.0, 0.0)
 
-        self.vel = [Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)]
+        self.vel = [Vector3(0.0, 0.0, 0.0) for i in range(self.people_num)]
 
     def pm_cb(self, msg):
         for pm in msg.people:
@@ -141,6 +144,8 @@ class VelocityTracker(object):
                 if msg.name[i][:5] == "actor":
                     self.vel[num_of_peo] = subtract(msg.pose[i].position, self.people1_pos[num_of_peo])
                     scale(self.vel[num_of_peo], 1.0 / time)
+                    if norm(self.vel[num_of_peo])>4.0:
+                        self.vel[num_of_peo] = Vector3(0.0, 0.0, 0.0);                 
                     self.people1_pos[num_of_peo] = msg.pose[i].position
                     self.people_time = rospy.Time.now()
                     num_of_peo = num_of_peo+1
@@ -167,7 +172,9 @@ class VelocityTracker(object):
 
         # for p in self.people.values():
         #     p.publish_markers(self.mpub)
-        for i in range(0,3):
+        for i in range(self.people_num):
+            if self.people1_pos[i].x <-1000:
+                continue
             gen.scale = [.1, .3, 0]
             gen.color = [1, 1, 1, 1]
             vel = self.vel[i]
